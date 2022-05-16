@@ -34,7 +34,7 @@ int main (int argc, char *argv[])
 {
   LogComponentEnable("proj", LOG_LEVEL_INFO);
 
-  int clientNum = 3;
+  int clientNum = 1;
   NodeContainer clients;
   clients.Create(clientNum);
   
@@ -48,6 +48,7 @@ int main (int argc, char *argv[])
 
   NetDeviceContainer clientDevices;
   NetDeviceContainer serverDevice;
+
   for (int i = 0; i < clientNum; i++)
   {
     NetDeviceContainer link = csma.Install (NodeContainer (clients.Get(i), serverPtr));
@@ -55,18 +56,21 @@ int main (int argc, char *argv[])
     serverDevice.Add (link.Get(1));
   }
 
-  BridgeHelper bridge;
-  bridge.Install (serverPtr, clientDevices);
-
   InternetStackHelper internet;
   internet.Install (clients);
+  internet.Install (server);
 
   Ipv4AddressHelper ipv4;
   ipv4.SetBase ("10.1.1.0", "255.255.255.0");
   ipv4.Assign (clientDevices);
 
+  Ipv4AddressHelper ipv4_server;
+  ipv4_server.SetBase("10.1.2.0", "255.255.255.0");
+  ipv4_server.Assign(serverDevice);
+
   Simulator::Run ();
   Simulator::Stop (Seconds(20));
   Simulator::Destroy ();
+
 }
 

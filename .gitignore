@@ -4,5 +4,12 @@
 !/.gitignore
 !/README.md
 
-# 포함할 폴더
+
 !/scratch/
+!/src/
+/src/*
+!/src/applications
+/src/applications/*
+!/src/applications/model
+/src/applications/model/*
+!/src/applications/model/new-app*
