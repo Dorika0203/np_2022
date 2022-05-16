@@ -1,0 +1,8 @@
+/*
+
+# 포함할 파일
+!/.gitignore
+!/README.md
+
+# 포함할 폴더
+!/scratch/
