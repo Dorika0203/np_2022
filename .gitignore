@@ -11,5 +11,8 @@
 !/src/applications
 /src/applications/*
 !/src/applications/model
+!/src/applications/helper
 /src/applications/model/*
+/src/applications/helper/*
 !/src/applications/model/new-app*
+!/src/applications/helper/new-app*
