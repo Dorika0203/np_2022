@@ -1,52 +1,43 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright 2007 University of Washington
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 #include "ns3/log.h"
 #include "ns3/ipv4-address.h"
-#include "ns3/ipv6-address.h"
-#include "ns3/address-utils.h"
 #include "ns3/nstime.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/inet6-socket-address.h"
 #include "ns3/socket.h"
-#include "ns3/udp-socket.h"
 #include "ns3/simulator.h"
 #include "ns3/socket-factory.h"
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
+#include "packet-loss-counter.h"
 
-// #include "udp-echo-server.h"
+#include "seq-ts-header.h"
 #include "new-app-server.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("NewAppServerApplication");
+NS_LOG_COMPONENT_DEFINE ("NewAppServer");
 
-TypeId NewAppServer::GetTypeId (void)
+NS_OBJECT_ENSURE_REGISTERED (NewAppServer);
+
+
+TypeId
+NewAppServer::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::NewAppServer")
     .SetParent<Application> ()
     .SetGroupName("Applications")
     .AddConstructor<NewAppServer> ()
-    .AddAttribute ("Port", "Port on which we listen for incoming packets.",
-                   UintegerValue (9),
+    .AddAttribute ("Port",
+                   "Port on which we listen for incoming packets.",
+                   UintegerValue (100),
                    MakeUintegerAccessor (&NewAppServer::m_port),
                    MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("PacketWindowSize",
+                   "The size of the window used to compute the packet loss. This value should be a multiple of 8.",
+                   UintegerValue (32),
+                   MakeUintegerAccessor (&NewAppServer::GetPacketWindowSize,
+                                         &NewAppServer::SetPacketWindowSize),
+                   MakeUintegerChecker<uint16_t> (8,256))
     .AddTraceSource ("Rx", "A packet has been received",
                      MakeTraceSourceAccessor (&NewAppServer::m_rxTrace),
                      "ns3::Packet::TracedCallback")
@@ -58,15 +49,43 @@ TypeId NewAppServer::GetTypeId (void)
 }
 
 NewAppServer::NewAppServer ()
+  : m_lossCounter (0)
+{
+  NS_LOG_FUNCTION (this);
+  m_received=0;
+}
+
+NewAppServer::~NewAppServer ()
 {
   NS_LOG_FUNCTION (this);
 }
 
-NewAppServer::~NewAppServer()
+uint16_t
+NewAppServer::GetPacketWindowSize () const
 {
   NS_LOG_FUNCTION (this);
-  m_socket = 0;
-  m_socket6 = 0;
+  return m_lossCounter.GetBitMapSize ();
+}
+
+void
+NewAppServer::SetPacketWindowSize (uint16_t size)
+{
+  NS_LOG_FUNCTION (this << size);
+  m_lossCounter.SetBitMapSize (size);
+}
+
+uint32_t
+NewAppServer::GetLost (void) const
+{
+  NS_LOG_FUNCTION (this);
+  return m_lossCounter.GetLost ();
+}
+
+uint64_t
+NewAppServer::GetReceived (void) const
+{
+  NS_LOG_FUNCTION (this);
+  return m_received;
 }
 
 void
@@ -76,7 +95,7 @@ NewAppServer::DoDispose (void)
   Application::DoDispose ();
 }
 
-void 
+void
 NewAppServer::StartApplication (void)
 {
   NS_LOG_FUNCTION (this);
@@ -85,76 +104,47 @@ NewAppServer::StartApplication (void)
     {
       TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
       m_socket = Socket::CreateSocket (GetNode (), tid);
-      InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), m_port);
+      InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (),
+                                                   m_port);
       if (m_socket->Bind (local) == -1)
         {
           NS_FATAL_ERROR ("Failed to bind socket");
         }
-      if (addressUtils::IsMulticast (m_local))
-        {
-          Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket> (m_socket);
-          if (udpSocket)
-            {
-              // equivalent to setsockopt (MCAST_JOIN_GROUP)
-              udpSocket->MulticastJoinGroup (0, m_local);
-            }
-          else
-            {
-              NS_FATAL_ERROR ("Error: Failed to join multicast group");
-            }
-        }
     }
+
+  m_socket->SetRecvCallback (MakeCallback (&NewAppServer::HandleRead, this));
 
   if (m_socket6 == 0)
     {
       TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
       m_socket6 = Socket::CreateSocket (GetNode (), tid);
-      Inet6SocketAddress local6 = Inet6SocketAddress (Ipv6Address::GetAny (), m_port);
-      if (m_socket6->Bind (local6) == -1)
+      Inet6SocketAddress local = Inet6SocketAddress (Ipv6Address::GetAny (),
+                                                   m_port);
+      if (m_socket6->Bind (local) == -1)
         {
           NS_FATAL_ERROR ("Failed to bind socket");
         }
-      if (addressUtils::IsMulticast (local6))
-        {
-          Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket> (m_socket6);
-          if (udpSocket)
-            {
-              // equivalent to setsockopt (MCAST_JOIN_GROUP)
-              udpSocket->MulticastJoinGroup (0, local6);
-            }
-          else
-            {
-              NS_FATAL_ERROR ("Error: Failed to join multicast group");
-            }
-        }
     }
 
-  m_socket->SetRecvCallback (MakeCallback (&NewAppServer::HandleRead, this));
   m_socket6->SetRecvCallback (MakeCallback (&NewAppServer::HandleRead, this));
+
 }
 
-void 
+void
 NewAppServer::StopApplication ()
 {
   NS_LOG_FUNCTION (this);
 
-  if (m_socket != 0) 
+  if (m_socket != 0)
     {
-      m_socket->Close ();
       m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
-    }
-  if (m_socket6 != 0) 
-    {
-      m_socket6->Close ();
-      m_socket6->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     }
 }
 
-void 
+void
 NewAppServer::HandleRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-
   Ptr<Packet> packet;
   Address from;
   Address localAddress;
@@ -163,36 +153,34 @@ NewAppServer::HandleRead (Ptr<Socket> socket)
       socket->GetSockName (localAddress);
       m_rxTrace (packet);
       m_rxTraceWithAddresses (packet, from, localAddress);
-      if (InetSocketAddress::IsMatchingType (from))
+      if (packet->GetSize () > 0)
         {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server received " << packet->GetSize () << " bytes from " <<
-                       InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
-                       InetSocketAddress::ConvertFrom (from).GetPort ());
-        }
-      else if (Inet6SocketAddress::IsMatchingType (from))
-        {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server received " << packet->GetSize () << " bytes from " <<
-                       Inet6SocketAddress::ConvertFrom (from).GetIpv6 () << " port " <<
-                       Inet6SocketAddress::ConvertFrom (from).GetPort ());
-        }
+          SeqTsHeader seqTs;
+          packet->RemoveHeader (seqTs);
+          uint32_t currentSequenceNumber = seqTs.GetSeq ();
+          if (InetSocketAddress::IsMatchingType (from))
+            {
+              NS_LOG_INFO ("TraceDelay: RX " << packet->GetSize () <<
+                           " bytes from "<< InetSocketAddress::ConvertFrom (from).GetIpv4 () <<
+                           " Sequence Number: " << currentSequenceNumber <<
+                           " Uid: " << packet->GetUid () <<
+                           " TXtime: " << seqTs.GetTs () <<
+                           " RXtime: " << Simulator::Now () <<
+                           " Delay: " << Simulator::Now () - seqTs.GetTs ());
+            }
+          else if (Inet6SocketAddress::IsMatchingType (from))
+            {
+              NS_LOG_INFO ("TraceDelay: RX " << packet->GetSize () <<
+                           " bytes from "<< Inet6SocketAddress::ConvertFrom (from).GetIpv6 () <<
+                           " Sequence Number: " << currentSequenceNumber <<
+                           " Uid: " << packet->GetUid () <<
+                           " TXtime: " << seqTs.GetTs () <<
+                           " RXtime: " << Simulator::Now () <<
+                           " Delay: " << Simulator::Now () - seqTs.GetTs ());
+            }
 
-      packet->RemoveAllPacketTags ();
-      packet->RemoveAllByteTags ();
-
-      NS_LOG_LOGIC ("Echoing packet");
-      socket->SendTo (packet, 0, from);
-
-      if (InetSocketAddress::IsMatchingType (from))
-        {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server sent " << packet->GetSize () << " bytes to " <<
-                       InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
-                       InetSocketAddress::ConvertFrom (from).GetPort ());
-        }
-      else if (Inet6SocketAddress::IsMatchingType (from))
-        {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server sent " << packet->GetSize () << " bytes to " <<
-                       Inet6SocketAddress::ConvertFrom (from).GetIpv6 () << " port " <<
-                       Inet6SocketAddress::ConvertFrom (from).GetPort ());
+          m_lossCounter.NotifyReceived (currentSequenceNumber);
+          m_received++;
         }
     }
 }
