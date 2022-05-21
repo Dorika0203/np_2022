@@ -16,10 +16,6 @@ namespace ns3
     static TypeId GetTypeId(void);
     NewAppServer();
     virtual ~NewAppServer();
-    uint32_t GetLost(void) const;
-    uint64_t GetReceived(void) const;
-    uint16_t GetPacketWindowSize() const;
-    void SetPacketWindowSize(uint16_t size);
 
   protected:
     virtual void DoDispose(void);
@@ -27,12 +23,22 @@ namespace ns3
   private:
     virtual void StartApplication(void);
     virtual void StopApplication(void);
+
+    // TCP Read Handler
     void HandleRead(Ptr<Socket> socket);
+
+    // TCP Listen, Accept, Close Handler
+    void HandleAccept(Ptr<Socket> socket, const Address& from);
+    void HandlePeerClose(Ptr<Socket> socket);
+    void HandlePeerError(Ptr<Socket> socket);
+
+    // Sending Packet
     void SendPacket(Ptr<Packet> packet);
 
     uint16_t m_port;                 //!< Port on which we listen for incoming packets.
     Ptr<Socket> m_socket;            //!< IPv4 Socket
-    PacketLossCounter m_lossCounter; //!< Lost packet counter
+    std::list<Ptr<Socket>> m_socketList; //!< the accepted sockets
+    // std::list<Ptr<Socket>> NewAppServer::GetAcceptedSockets(void) const;
   };
 
 } // namespace ns3

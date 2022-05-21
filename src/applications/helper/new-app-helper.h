@@ -8,35 +8,35 @@
 #include "ns3/ipv4-address.h"
 #include "ns3/new-app-server.h"
 #include "ns3/new-app-client.h"
-namespace ns3 {
-
-class NewAppServerHelper
+namespace ns3
 {
-public:
 
-  NewAppServerHelper ();
-  NewAppServerHelper (uint16_t port);
-  void SetAttribute (std::string name, const AttributeValue &value);
-  ApplicationContainer Install (NodeContainer c);
-  Ptr<NewAppServer> GetServer (void);
-private:
-  ObjectFactory m_factory; //!< Object factory.
-  Ptr<NewAppServer> m_server; //!< The last created server application
-};
+  class NewAppServerHelper
+  {
+  public:
+    NewAppServerHelper();
+    NewAppServerHelper(uint16_t port);
+    void SetAttribute(std::string name, const AttributeValue &value);
+    ApplicationContainer Install(NodeContainer c);
+    Ptr<NewAppServer> GetServer(void);
 
-class NewAppClientHelper
-{
-public:
+  private:
+    ObjectFactory m_factory;    //!< Object factory.
+    Ptr<NewAppServer> m_server; //!< The last created server application
+  };
 
-  NewAppClientHelper ();
-  NewAppClientHelper (Address ip, uint16_t port);
-  NewAppClientHelper (Address addr);
-  void SetAttribute (std::string name, const AttributeValue &value);
-  ApplicationContainer Install (NodeContainer c);
+  class NewAppClientHelper
+  {
+  public:
+    NewAppClientHelper();
+    NewAppClientHelper(Address ip, uint16_t port);
+    NewAppClientHelper(Address addr);
+    void SetAttribute(std::string name, const AttributeValue &value);
+    ApplicationContainer Install(NodeContainer c);
 
-private:
-  ObjectFactory m_factory; //!< Object factory.
-};
+  private:
+    ObjectFactory m_factory; //!< Object factory.
+  };
 
 } // namespace ns3
 

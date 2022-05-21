@@ -1,19 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -27,50 +11,56 @@
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("proj");
-
-
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  LogComponentEnable("proj", LOG_LEVEL_INFO);
+  // LogComponentEnableAll(LOG_LEVEL_INFO);
+  LogComponentEnable("NewAppServer", LOG_LEVEL_INFO);
+  LogComponentEnable("NewAppClient", LOG_LEVEL_INFO);
 
-  int clientNum = 1;
-  NodeContainer clients;
-  clients.Create(clientNum);
-  
-  NodeContainer server;
-  server.Create(1);
-  Ptr<Node> serverPtr = server.Get(0);
+  uint16_t clientNum = 5;
+  uint16_t serverPort = 9;
 
-  CsmaHelper csma;
-  csma.SetChannelAttribute("DataRate", DataRateValue(5000000));
-  csma.SetChannelAttribute("Delay", StringValue("10us"));
+  NodeContainer terminal;
+  terminal.Create(clientNum+1);
 
-  NetDeviceContainer clientDevices;
-  NetDeviceContainer serverDevice;
+  Ptr<Node> serverPtr = terminal.Get(clientNum);
 
-  for (int i = 0; i < clientNum; i++)
-  {
-    NetDeviceContainer link = csma.Install (NodeContainer (clients.Get(i), serverPtr));
-    clientDevices.Add (link.Get(0));
-    serverDevice.Add (link.Get(1));
-  }
+  // PointToPointHelper p2pHelper;
+  // p2pHelper.SetDeviceAttribute("DataRate", DataRateValue(5000000));
+  // p2pHelper.SetChannelAttribute("Delay", StringValue("10us"));
+
+  CsmaHelper csmaHelper;
+  csmaHelper.SetChannelAttribute("DataRate", DataRateValue(5000000));
+  csmaHelper.SetChannelAttribute("Delay", StringValue("10us"));
+
+  NetDeviceContainer nds;
+  nds = csmaHelper.Install(terminal);
 
   InternetStackHelper internet;
-  internet.Install (clients);
-  internet.Install (server);
+  internet.Install(terminal);
 
   Ipv4AddressHelper ipv4;
-  ipv4.SetBase ("10.1.1.0", "255.255.255.0");
-  ipv4.Assign (clientDevices);
+  ipv4.SetBase("10.1.1.0", "255.255.255.0");
 
-  Ipv4AddressHelper ipv4_server;
-  ipv4_server.SetBase("10.1.2.0", "255.255.255.0");
-  ipv4_server.Assign(serverDevice);
+  Ipv4InterfaceContainer interface;
+  interface = ipv4.Assign(nds);
 
-  Simulator::Run ();
-  Simulator::Stop (Seconds(20));
-  Simulator::Destroy ();
+  NewAppServerHelper serverHelper(serverPort);
+  NewAppClientHelper clientHelper(interface.GetAddress(clientNum), serverPort);
 
+  ApplicationContainer serverContainer;
+  ApplicationContainer clientContainer;
+
+  serverContainer.Add(serverHelper.Install(serverPtr));
+
+  for(int i=0; i<clientNum; i++) {
+    clientContainer.Add(clientHelper.Install(terminal.Get(i)));
+  }
+
+  serverContainer.Start(Seconds(1.0));
+  clientContainer.Start(Seconds(1.1));
+
+  Simulator::Run();
+  Simulator::Stop(Seconds(1.5));
+  Simulator::Destroy();
 }
-
