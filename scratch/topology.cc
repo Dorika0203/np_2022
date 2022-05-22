@@ -17,7 +17,11 @@ int main(int argc, char *argv[])
   LogComponentEnable("NewAppServer", LOG_LEVEL_INFO);
   LogComponentEnable("NewAppClient", LOG_LEVEL_INFO);
 
-  uint16_t clientNum = 5;
+  // LogComponentEnable("NewAppServer", LOG_LEVEL_FUNCTION);
+  // LogComponentEnable("NewAppClient", LOG_LEVEL_FUNCTION);
+  // LogComponentEnableAll(LOG_LEVEL_FUNCTION);
+
+  uint16_t clientNum = 3;
   uint16_t serverPort = 9;
 
   NodeContainer terminal;
@@ -61,6 +65,6 @@ int main(int argc, char *argv[])
   clientContainer.Start(Seconds(1.1));
 
   Simulator::Run();
-  Simulator::Stop(Seconds(1.5));
+  Simulator::Stop(Seconds(1.2));
   Simulator::Destroy();
 }

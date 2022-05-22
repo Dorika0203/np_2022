@@ -6,7 +6,7 @@
 #include "ns3/ptr.h"
 #include "ns3/address.h"
 #include "ns3/traced-callback.h"
-#include "packet-loss-counter.h"
+#include "ns3/socket.h"
 
 namespace ns3
 {
@@ -33,12 +33,13 @@ namespace ns3
     void HandlePeerError(Ptr<Socket> socket);
 
     // Sending Packet
-    void SendPacket(Ptr<Packet> packet);
+    void SendMessage(uint8_t* buffer, Ptr<Socket> socket);
 
-    uint16_t m_port;                 //!< Port on which we listen for incoming packets.
-    Ptr<Socket> m_socket;            //!< IPv4 Socket
-    std::list<Ptr<Socket>> m_socketList; //!< the accepted sockets
-    // std::list<Ptr<Socket>> NewAppServer::GetAcceptedSockets(void) const;
+    uint16_t m_port;
+    Ptr<Socket> m_socket;
+    std::list<Ptr<Socket>> m_socketList;
+    std::list<Address> userList;
+
   };
 
 } // namespace ns3

@@ -30,13 +30,15 @@ namespace ns3
   private:
     virtual void StartApplication(void);
     virtual void StopApplication(void);
-    void Send(void);
+    void RequestServer(void);
+    void ConnectionSucceededCallback (Ptr<Socket> socket);
+    void ConnectionFailedCallback (Ptr<Socket> socket);
+    void NormalCloseCallback (Ptr<Socket> socket);
+    void ErrorCloseCallback (Ptr<Socket> socket);
+    void ReceivedDataCallback (Ptr<Socket> socket);
 
-    uint32_t m_count; //!< Maximum number of packets the application will send
-    Time m_interval;  //!< Packet inter-send time
     uint32_t m_size;  //!< Size of the sent packet (including the SeqTsHeader)
 
-    uint32_t m_sent;       //!< Counter for sent packets
     Ptr<Socket> m_socket;  //!< Socket
     Address m_peerAddress; //!< Remote peer address
     uint16_t m_peerPort;   //!< Remote peer port

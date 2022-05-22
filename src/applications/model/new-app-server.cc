@@ -8,7 +8,8 @@
 #include "ns3/socket-factory.h"
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
-#include "packet-loss-counter.h"
+#include "ns3/tcp-socket.h"
+#include "ns3/tcp-socket-factory.h"
 
 #include "seq-ts-header.h"
 #include "new-app-server.h"
@@ -53,14 +54,6 @@ namespace ns3
     m_socketList.clear();
   }
 
-  // std::list<Ptr<Socket>>
-  // NewAppServer::GetAcceptedSockets(void) const
-  // {
-  //   NS_LOG_FUNCTION(this);
-  //   return m_socketList;
-  // }
-
-
   void
   NewAppServer::StartApplication(void)
   {
@@ -68,15 +61,13 @@ namespace ns3
 
     if (m_socket == 0)
     {
-      TypeId tid = TypeId::LookupByName("ns3::TcpSocketFactory");
-      m_socket = Socket::CreateSocket(GetNode(), tid);
+      m_socket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
       InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
       if (m_socket->Bind(local) == -1)
       {
         NS_FATAL_ERROR("Failed to bind socket");
       }
       m_socket->Listen();
-      m_socket->ShutdownSend();
     }
     m_socket->SetRecvCallback(MakeCallback(&NewAppServer::HandleRead, this));
     m_socket->SetAcceptCallback(
@@ -110,28 +101,55 @@ namespace ns3
   NewAppServer::HandleRead(Ptr<Socket> socket)
   {
     NS_LOG_FUNCTION(this << socket);
-    Ptr<Packet> packet;
     Address from;
     Address localAddress;
-    while ((packet = socket->RecvFrom(from)))
-    {
-      if (packet->GetSize() == 0)
-        break;
-      socket->GetSockName(localAddress);
-      SeqTsHeader seqTs;
-      packet->RemoveHeader(seqTs);
-      uint32_t currentSequenceNumber = seqTs.GetSeq();
+    uint8_t buffer[128];
+    socket->RecvFrom(buffer, 128, 0, from);
+    userList.push_back(from);
 
-      if (InetSocketAddress::IsMatchingType(from))
+    NS_LOG_INFO("SERVER got matching request from " << InetSocketAddress::ConvertFrom(from).GetIpv4() << " queue size: " << userList.size() << " Time: " << (Simulator::Now()).GetSeconds());
+
+    // IF USER WAITING IS MORE THAN 2
+    if(userList.size() > 1)
+    {
+      Ipv4Address user1, user2;
+      user1 = InetSocketAddress::ConvertFrom(userList.back()).GetIpv4();
+      userList.pop_back();
+      user2 = InetSocketAddress::ConvertFrom(userList.back()).GetIpv4();
+      userList.pop_back();
+
+      Ptr<Socket> user1_socket;
+      Ptr<Socket> user2_socket;
+      Ptr<Socket> temp;
+      Address addr_checker;
+      int counter = 0;
+      for(auto it=m_socketList.begin(); it != m_socketList.end(); it++)
       {
-        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds()
-                               << "s SERVER received "
-                               << packet->GetSize() << " bytes from "
-                               << InetSocketAddress::ConvertFrom(from).GetIpv4()
-                               << " port " << InetSocketAddress::ConvertFrom(from).GetPort()
-                               << " seqNum " << currentSequenceNumber
-                               );
+        if(counter == 2 ) break;
+
+        temp = *it;
+        temp->GetPeerName(addr_checker);
+
+        if(user1.IsEqual(InetSocketAddress::ConvertFrom(addr_checker).GetIpv4())) {
+          user1_socket = temp;
+          counter++;
+        }
+        else if(user2.IsEqual(InetSocketAddress::ConvertFrom(addr_checker).GetIpv4())) {
+          user2_socket = temp;
+          counter++;
+        }
       }
+      uint32_t addr_int;
+
+      // SEND USER 1 INFO TO USER 2
+      addr_int = user1.Get();
+      memcpy(buffer, &addr_int, sizeof(uint32_t));
+      SendMessage(buffer, user2_socket);
+
+      // SEND USER 2 INFO TO USER 1
+      addr_int = user2.Get();
+      memcpy(buffer, &addr_int, sizeof(uint32_t));
+      SendMessage(buffer, user1_socket);
     }
   }
 
@@ -150,6 +168,15 @@ namespace ns3
   void NewAppServer::HandlePeerClose(Ptr<Socket> socket)
   {
     NS_LOG_FUNCTION(this << socket);
+  }
+
+  void NewAppServer::SendMessage(uint8_t* buffer, Ptr<Socket> socket) {
+    Ptr<Packet> p = Create<Packet>(buffer, 128);
+    int retval = socket->Send(p);
+    if (retval >= 0)
+      NS_LOG_INFO("SERVER respond matching info to client at " << (Simulator::Now()).GetSeconds());
+    else
+      NS_LOG_INFO("SERVER send fail, ERROR-Code: " << socket->GetErrno() << " Time: " << (Simulator::Now()).GetSeconds());
   }
 
 } // Namespace ns3
