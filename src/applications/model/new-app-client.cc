@@ -166,7 +166,8 @@ namespace ns3
     friend_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
     if (!Ipv4Address::IsMatchingType(friend_address))
       NS_ASSERT_MSG(false, "Incompatible address type: " << friend_address);
-    if (friend_socket->Bind() == -1)
+    InetSocketAddress local = InetSocketAddress(InetSocketAddress::ConvertFrom(my_address).GetIpv4(), friend_port);
+    if (friend_socket->Bind(local) == -1)
       NS_FATAL_ERROR("Failed to bind socket");
 
     friend_socket->SetConnectCallback(
@@ -190,14 +191,14 @@ namespace ns3
       Simulator::Schedule(Seconds(0.3), &NewAppClient::SendMessageToFriend, this, "0_2");
       break;
     case 1:
-      Simulator::Schedule(Seconds(0.4), &NewAppClient::SendMessageToFriend, this, "1_0");
-      Simulator::Schedule(Seconds(0.5), &NewAppClient::SendMessageToFriend, this, "1_1");
-      Simulator::Schedule(Seconds(0.7), &NewAppClient::SendMessageToFriend, this, "1_2");
+      Simulator::Schedule(Seconds(1.4), &NewAppClient::SendMessageToFriend, this, "1_0");
+      Simulator::Schedule(Seconds(1.5), &NewAppClient::SendMessageToFriend, this, "1_1");
+      Simulator::Schedule(Seconds(1.7), &NewAppClient::SendMessageToFriend, this, "1_2");
       break;
     case 2:
-      Simulator::Schedule(Seconds(0.6), &NewAppClient::SendMessageToFriend, this, "2_0");
-      Simulator::Schedule(Seconds(0.9), &NewAppClient::SendMessageToFriend, this, "2_1");
-      Simulator::Schedule(Seconds(1.2), &NewAppClient::SendMessageToFriend, this, "2_2");
+      Simulator::Schedule(Seconds(2.6), &NewAppClient::SendMessageToFriend, this, "2_0");
+      Simulator::Schedule(Seconds(2.9), &NewAppClient::SendMessageToFriend, this, "2_1");
+      Simulator::Schedule(Seconds(3.2), &NewAppClient::SendMessageToFriend, this, "2_2");
       break;
     default:
       break;
@@ -209,8 +210,16 @@ namespace ns3
   NewAppClient::FriendReceiveCallback(Ptr<Socket> socket)
   {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("CLIENT(" << InetSocketAddress::ConvertFrom(my_address).GetIpv4() << ") "
-                          << "RECV MESSAGE.");
+
+    Address from;
+    uint8_t buffer[message_size];
+    int retval = socket->RecvFrom(buffer, message_size, 0, from);
+    Ptr<Packet> packet = socket->Recv();
+
+    NS_LOG_INFO("CLIENT(" << InetSocketAddress::ConvertFrom(my_address).GetIpv4()
+                          << ") recv <------ " << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                          << ", Time: " << (Simulator::Now()).GetSeconds()
+                          << ", Bytes: " << retval << " || Message: " << buffer);
   }
 
   void
@@ -246,7 +255,7 @@ namespace ns3
       NS_LOG_INFO("CLIENT(" << InetSocketAddress::ConvertFrom(my_address).GetIpv4()
                             << ") send ------> " << peerAddressStringStream.str()
                             << ", Time: " << (Simulator::Now()).GetSeconds()
-                            << " || Message: " << message
+                            << ", Bytes: " << (int)retval << " || Message: " << message
                             );
     }
     else

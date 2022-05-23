@@ -102,7 +102,6 @@ namespace ns3
   {
     NS_LOG_FUNCTION(this << socket);
     Address from;
-    Address localAddress;
     uint8_t buffer[128];
     socket->RecvFrom(buffer, 128, 0, from);
     userList.push_back(from);
