@@ -42,7 +42,7 @@ namespace ns3
     Ptr<Socket> friend_socket;
     Address friend_address;
     uint16_t friend_port;
-    uint32_t message_size;
+    uint32_t max_packet_size;
 
     Address my_address;
   };

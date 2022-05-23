@@ -47,8 +47,8 @@ namespace ns3
                                           MakeUintegerChecker<uint16_t>())
                             .AddAttribute("PacketSize",
                                           "Packet Size for chatting",
-                                          UintegerValue(512),
-                                          MakeUintegerAccessor(&NewAppClient::message_size),
+                                          UintegerValue(4096),
+                                          MakeUintegerAccessor(&NewAppClient::max_packet_size),
                                           MakeUintegerChecker<uint32_t>(12, 65507))
                             .AddAttribute("ScenarioType", "Scenario number", UintegerValue(0),
                                           MakeUintegerAccessor(&NewAppClient::scenario_type),
@@ -212,8 +212,8 @@ namespace ns3
     NS_LOG_FUNCTION(this << socket);
 
     Address from;
-    uint8_t buffer[message_size];
-    int retval = socket->RecvFrom(buffer, message_size, 0, from);
+    uint8_t buffer[max_packet_size];
+    int retval = socket->RecvFrom(buffer, max_packet_size, 0, from);
     Ptr<Packet> packet = socket->Recv();
 
     NS_LOG_INFO("CLIENT(" << InetSocketAddress::ConvertFrom(my_address).GetIpv4()
@@ -241,10 +241,15 @@ namespace ns3
   void NewAppClient::SendMessageToFriend(const char* message)
   {
     NS_LOG_FUNCTION(this);
-    uint8_t buffer[message_size];
     uint32_t length = sizeof(message) / sizeof(char);
-    memcpy(buffer, message, length > message_size ? message_size : length);
-    Ptr<Packet> p = Create<Packet>(buffer, message_size);
+    uint32_t packet_size = length > max_packet_size ? max_packet_size : length;
+
+    packet_size = packet_size < 64 ? 64 : packet_size; // if smaller than 64 byte, set to 64 byte.
+    
+    uint8_t buffer[packet_size];
+    memcpy(buffer, message, length);
+
+    Ptr<Packet> p = Create<Packet>(buffer, packet_size);
     std::stringstream peerAddressStringStream;
     peerAddressStringStream << Ipv4Address::ConvertFrom(friend_address);
 
