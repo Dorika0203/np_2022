@@ -28,18 +28,17 @@ namespace ns3
     void HandleRead(Ptr<Socket> socket);
 
     // TCP Listen, Accept, Close Handler
-    void HandleAccept(Ptr<Socket> socket, const Address& from);
+    void HandleAccept(Ptr<Socket> socket, const Address &from);
     void HandlePeerClose(Ptr<Socket> socket);
     void HandlePeerError(Ptr<Socket> socket);
 
     // Sending Packet
-    void SendMessage(uint8_t* buffer, Ptr<Socket> socket);
+    void SendMessage(uint8_t *buffer, Ptr<Socket> socket);
 
     uint16_t m_port;
     Ptr<Socket> m_socket;
     std::list<Ptr<Socket>> m_socketList;
     std::list<Address> userList;
-
   };
 
 } // namespace ns3

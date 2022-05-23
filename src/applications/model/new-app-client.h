@@ -16,13 +16,8 @@ namespace ns3
   {
   public:
     static TypeId GetTypeId(void);
-
     NewAppClient();
-
     virtual ~NewAppClient();
-
-    void SetRemote(Address ip, uint16_t port);
-    void SetRemote(Address addr);
 
   protected:
     virtual void DoDispose(void);
@@ -31,18 +26,26 @@ namespace ns3
     virtual void StartApplication(void);
     virtual void StopApplication(void);
     void RequestServer(void);
-    void ConnectionSucceededCallback (Ptr<Socket> socket);
-    void ConnectionFailedCallback (Ptr<Socket> socket);
-    void NormalCloseCallback (Ptr<Socket> socket);
-    void ErrorCloseCallback (Ptr<Socket> socket);
-    void ReceivedDataCallback (Ptr<Socket> socket);
+    void SendMessageToFriend();
+    void ServerReceiveCallback(Ptr<Socket> socket);
+    void FriendReceiveCallback(Ptr<Socket> socket);
+    void FriendConnectGoodCallback(Ptr<Socket> socket);
+    void FriendConnectBadCallback(Ptr<Socket> socket);
 
-    uint32_t m_size;  //!< Size of the sent packet (including the SeqTsHeader)
+    EventId server_request_event;   //!< Event to send the next packet
+    uint8_t scenario_type;
+    const char* message;
 
-    Ptr<Socket> m_socket;  //!< Socket
-    Address m_peerAddress; //!< Remote peer address
-    uint16_t m_peerPort;   //!< Remote peer port
-    EventId m_sendEvent;   //!< Event to send the next packet
+    Ptr<Socket> server_socket;  //!< Socket
+    Address server_address; //!< Remote peer address
+    uint16_t server_port;   //!< Remote peer port
+
+    Ptr<Socket> friend_socket;
+    Address friend_address;
+    uint16_t friend_port;
+    uint32_t message_size;
+
+    Address my_address;
   };
 
 } // namespace ns3

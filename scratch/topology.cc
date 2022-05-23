@@ -29,10 +29,6 @@ int main(int argc, char *argv[])
 
   Ptr<Node> serverPtr = terminal.Get(clientNum);
 
-  // PointToPointHelper p2pHelper;
-  // p2pHelper.SetDeviceAttribute("DataRate", DataRateValue(5000000));
-  // p2pHelper.SetChannelAttribute("Delay", StringValue("10us"));
-
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute("DataRate", DataRateValue(5000000));
   csmaHelper.SetChannelAttribute("Delay", StringValue("10us"));
