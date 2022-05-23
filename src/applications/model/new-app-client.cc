@@ -175,25 +175,29 @@ namespace ns3
     friend_socket->SetRecvCallback(
         MakeCallback(&NewAppClient::FriendReceiveCallback, this));
 
-    // User who are requested to connect.
-    if (buffer[4] == 1)
-      friend_socket->Connect(InetSocketAddress(friend_address_ipv4, friend_port));
+    // User who are requested to connect. IF TCP, will be used.
+    // if (buffer[4] == 1)
+    //   friend_socket->Connect(InetSocketAddress(friend_address_ipv4, friend_port));
 
+    friend_socket->Connect(InetSocketAddress(friend_address_ipv4, friend_port));
 
     // Schedule Simulation
     switch (scenario_type)
     {
     case 0:
-      message = "S0_M0";
-      Simulator::Schedule(Seconds(0.1), &NewAppClient::SendMessageToFriend, this);
-      message = "S0_M1";
-      Simulator::Schedule(Seconds(0.2), &NewAppClient::SendMessageToFriend, this);
-      message = "S0_M2";
-      Simulator::Schedule(Seconds(0.3), &NewAppClient::SendMessageToFriend, this);
+      Simulator::Schedule(Seconds(0.1), &NewAppClient::SendMessageToFriend, this, "0_0");
+      Simulator::Schedule(Seconds(0.2), &NewAppClient::SendMessageToFriend, this, "0_1");
+      Simulator::Schedule(Seconds(0.3), &NewAppClient::SendMessageToFriend, this, "0_2");
       break;
     case 1:
+      Simulator::Schedule(Seconds(0.4), &NewAppClient::SendMessageToFriend, this, "1_0");
+      Simulator::Schedule(Seconds(0.5), &NewAppClient::SendMessageToFriend, this, "1_1");
+      Simulator::Schedule(Seconds(0.7), &NewAppClient::SendMessageToFriend, this, "1_2");
       break;
     case 2:
+      Simulator::Schedule(Seconds(0.6), &NewAppClient::SendMessageToFriend, this, "2_0");
+      Simulator::Schedule(Seconds(0.9), &NewAppClient::SendMessageToFriend, this, "2_1");
+      Simulator::Schedule(Seconds(1.2), &NewAppClient::SendMessageToFriend, this, "2_2");
       break;
     default:
       break;
@@ -225,7 +229,7 @@ namespace ns3
                           << "friend connect FAIL");
   }
 
-  void NewAppClient::SendMessageToFriend()
+  void NewAppClient::SendMessageToFriend(const char* message)
   {
     NS_LOG_FUNCTION(this);
     uint8_t buffer[message_size];
@@ -238,19 +242,21 @@ namespace ns3
     int retval = friend_socket->Send(p);
     if (retval >= 0)
     {
+      // std::cout << message << std::endl;
       NS_LOG_INFO("CLIENT(" << InetSocketAddress::ConvertFrom(my_address).GetIpv4()
-                            << ") " << peerAddressStringStream.str()
-                            << " Time: " << (Simulator::Now()).GetSeconds()
-                            << " Message: " << message
+                            << ") send ------> " << peerAddressStringStream.str()
+                            << ", Time: " << (Simulator::Now()).GetSeconds()
+                            << " || Message: " << message
                             );
     }
     else
     {
+      // std::cout << "ERROR" << std::endl;
       NS_LOG_INFO("CLIENT(" << InetSocketAddress::ConvertFrom(my_address).GetIpv4()
-                            << ") " << peerAddressStringStream.str()
-                            << " Time: " << (Simulator::Now()).GetSeconds()
-                            << " ERROR CODE: " << friend_socket->GetErrno();
-                            );  
+                            << ") send ------> " << peerAddressStringStream.str()
+                            << ", Time: " << (Simulator::Now()).GetSeconds()
+                            << " || [ErrorCode] " << (int)friend_socket->GetErrno()
+                            );
     }
   }
 

@@ -153,7 +153,9 @@ namespace ns3
       // SEND USER 2 INFO TO USER 1
       addr_int = user2.Get();
       memcpy(buffer, &addr_int, sizeof(uint32_t));
-      buffer[4] = 1; // who try connect;
+
+      // IF TCP, HAVE TO DECIDE CONNECTOR
+      // buffer[4] = 1; // who try connect;
       SendMessage(buffer, user1_socket);
     }
   }

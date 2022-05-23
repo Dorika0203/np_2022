@@ -26,7 +26,7 @@ namespace ns3
     virtual void StartApplication(void);
     virtual void StopApplication(void);
     void RequestServer(void);
-    void SendMessageToFriend();
+    void SendMessageToFriend(const char* message);
     void ServerReceiveCallback(Ptr<Socket> socket);
     void FriendReceiveCallback(Ptr<Socket> socket);
     void FriendConnectGoodCallback(Ptr<Socket> socket);
@@ -34,7 +34,6 @@ namespace ns3
 
     EventId server_request_event;   //!< Event to send the next packet
     uint8_t scenario_type;
-    const char* message;
 
     Ptr<Socket> server_socket;  //!< Socket
     Address server_address; //!< Remote peer address

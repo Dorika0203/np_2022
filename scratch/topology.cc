@@ -54,6 +54,8 @@ int main(int argc, char *argv[])
   serverContainer.Add(serverHelper.Install(serverPtr));
 
   for(int i=0; i<clientNum; i++) {
+    // Scenario 0, 1, 2 circular
+    // clientHelper.SetAttribute("ScenarioType", UintegerValue(i%3));
     clientContainer.Add(clientHelper.Install(terminal.Get(i)));
   }
 
@@ -61,6 +63,6 @@ int main(int argc, char *argv[])
   clientContainer.Start(Seconds(1.1));
 
   Simulator::Run();
-  Simulator::Stop(Seconds(1.2));
+  Simulator::Stop(Seconds(10));
   Simulator::Destroy();
 }
