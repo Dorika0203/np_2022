@@ -1,7 +1,6 @@
 # 2022-1 SKKU Network Project
 
 ## Introduction
-* * *
 
 * Random Chatting Server-Client, NS-3 Application  
 
@@ -15,7 +14,6 @@
 
 
 ## How to run
-* * *
 
 1. Install ns-3 (3.29)  
 
