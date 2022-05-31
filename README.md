@@ -29,6 +29,6 @@
     ```
 5. Run example topology in scratch
     ```
-    ~/ns-3.29 $ ./waf --run topology
+    ~/ns-3.29 $ ./waf --run "topology --Topology=[csma|p2p] --Scenario=[0|1|2]"
     ```
 
