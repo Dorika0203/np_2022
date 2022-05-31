@@ -10,6 +10,7 @@
 /src/*
 !/src/applications
 /src/applications/*
+!/src/applications/wscript
 !/src/applications/model
 !/src/applications/helper
 /src/applications/model/*
