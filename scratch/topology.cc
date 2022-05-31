@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
   // LogComponentEnableAll(LOG_LEVEL_INFO);
   LogComponentEnable("NewAppServer", LOG_LEVEL_INFO);
   LogComponentEnable("NewAppClient", LOG_LEVEL_INFO);
-  std::string topo;
+  std::string topo = "p2p";
   CommandLine cmd;
   cmd.AddValue("Topology","Testing topology",topo);
   cmd.Parse(argc,argv);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
   {
     uint16_t clientNum = 3;
     uint16_t serverPort = 9;
-    /*123123123*/
+    
     Ptr<Node> p1 = CreateObject<Node> ();
     Ptr<Node> p2 = CreateObject<Node> ();
     Ptr<Node> p3 = CreateObject<Node> ();
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
     serverContainer.Start(Seconds(1.0));
     clientContainer.Start(Seconds(1.1));
     
-  }
+  } else if
   
 
   Simulator::Run();
