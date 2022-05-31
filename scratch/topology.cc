@@ -8,6 +8,8 @@
 #include "ns3/applications-module.h"
 #include "ns3/bridge-module.h"
 #include "ns3/csma-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
 
 using namespace ns3;
 
@@ -18,7 +20,9 @@ int main(int argc, char *argv[])
   LogComponentEnable("NewAppClient", LOG_LEVEL_INFO);
   std::string topo = "p2p";
   CommandLine cmd;
+  uint16_t Scenario;
   cmd.AddValue("Topology","Testing topology",topo);
+  cmd.AddValue("Scenario","Scenario Type(0,1,2)",Scenario);
   cmd.Parse(argc,argv);
 
   // LogComponentEnable("NewAppServer", LOG_LEVEL_FUNCTION);
@@ -51,6 +55,7 @@ int main(int argc, char *argv[])
 
     NewAppServerHelper serverHelper(serverPort);
     NewAppClientHelper clientHelper(interface.GetAddress(clientNum), serverPort);
+    clientHelper.SetAttribute("ScenarioType",UintegerValue(Scenario));
 
     ApplicationContainer serverContainer;
     ApplicationContainer clientContainer;
@@ -68,10 +73,7 @@ int main(int argc, char *argv[])
 
   } 
   else if (topo == "p2p")
-  {
-    uint16_t clientNum = 3;
-    uint16_t serverPort = 9;
-    
+  {    
     Ptr<Node> p1 = CreateObject<Node> ();
     Ptr<Node> p2 = CreateObject<Node> ();
     Ptr<Node> p3 = CreateObject<Node> ();
@@ -104,11 +106,12 @@ int main(int argc, char *argv[])
     Ipv4InterfaceContainer ii_p3_server = ipv4.Assign (nd_p3_server);
     
     Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-    uint16_t sinkPortTcp = 8080;
-    Address sinkAddressTcp (InetSocketAddress (ii_p1_server.GetAddress (1), sinkPortTcp));
+    uint16_t port = 8080;
+    //Address address (InetSocketAddress (ii_p1_server.GetAddress (1), port));
 
-    NewAppServerHelper serverHelper(serverPort);
-    NewAppClientHelper clientHelper(ii_p1_server.GetAddress(1), sinkPortTcp);
+    NewAppServerHelper serverHelper(port);
+    NewAppClientHelper clientHelper(ii_p1_server.GetAddress(1), port);
+    clientHelper.SetAttribute("ScenarioType",UintegerValue(Scenario));
 
     ApplicationContainer serverContainer;
     ApplicationContainer clientContainer;
@@ -122,7 +125,8 @@ int main(int argc, char *argv[])
     serverContainer.Start(Seconds(1.0));
     clientContainer.Start(Seconds(1.1));
     
-  } else if
+  } 
+  
   
 
   Simulator::Run();
